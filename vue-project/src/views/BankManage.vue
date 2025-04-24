@@ -198,11 +198,11 @@
               </div>
               <div class="mb-3">
                 <label>Start Number</label>
-                <input type="number" class="form-control" v-model="bigQuestionForm.start_number" required />
+                <input type="number" class="form-control" v-model="bigQuestionForm.start_number" />
               </div>
               <div class="mb-3">
                 <label>End Number</label>
-                <input type="number" class="form-control" v-model="bigQuestionForm.end_number" required />
+                <input type="number" class="form-control" v-model="bigQuestionForm.end_number" />
               </div>
               <div class="mb-3">
                 <label>If NB (1 for yes, 0 for no)</label>
@@ -234,7 +234,7 @@
               </div>
               <div class="mb-3">
                 <label>Question Content</label>
-                <textarea class="form-control" v-model="smallQuestionForm.question_content" required></textarea>
+                <textarea class="form-control" v-model="smallQuestionForm.question_content"></textarea>
               </div>
               <div class="mb-3">
                 <label>Question Options</label>
@@ -242,7 +242,7 @@
               </div>
               <div class="mb-3">
                 <label>Correct Answer</label>
-                <input type="text" class="form-control" v-model="smallQuestionForm.question_answer" required />
+                <input type="text" class="form-control" v-model="smallQuestionForm.question_answer"/>
               </div>
             </div>
             <div class="modal-footer">

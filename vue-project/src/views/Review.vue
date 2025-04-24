@@ -301,10 +301,11 @@ export default {
       // Transform scores to API format
       const apiScores = {};
       this.criteriaList.forEach(displayName => {
-        const apiName = this.criteriaMapping[displayName];
+        const apiName = Object.keys(this.criteriaMapping).find(
+        key => this.criteriaMapping[key] === displayName
+      );
         apiScores[apiName] = this.scores[displayName];
       });
-
       const payload = {
         scores: apiScores,
         comments: this.comments,

@@ -1187,7 +1187,7 @@ def submit():
             if not submitted_answer:
                 if_correct = None
             else:
-                if_correct = submitted_answer == correct_answer
+                if_correct = submitted_answer in correct_answer.split("|")
 
             if if_correct:
                 correct_count += 1
@@ -1350,7 +1350,8 @@ def get_submission(sub_id):
                 "bank_name": bank.bank_name
             },
             "performance_summary": {
-                "result": json.loads(latest_ai_review.review_result) if latest_ai_review and latest_ai_review.review_result else {},
+                "result": json.loads(
+                    latest_ai_review.review_result) if latest_ai_review and latest_ai_review.review_result else {},
                 "information": latest_ai_review.review_information if latest_ai_review else ""
             },
             "answer_details": answer.user_answer
@@ -1805,7 +1806,8 @@ def submit_review():
         record = DetectionResults(
             is_fake=result['is_fake'],
             confidence=result['confidence'],
-            evaluation=result['evaluation']
+            evaluation=result['evaluation'],
+            peer_id=new_review.peer_id
         )
         db.session.add(record)
         db.session.commit()
@@ -1828,7 +1830,7 @@ def sort_key(bank):
         second = int(parts[1]) if len(parts) > 1 else 0
     except ValueError:
         first, second = 0, 0
-    return (-first, second, bank.display_order if bank.display_order is not None else 0)
+    return -first, second, bank.display_order if bank.display_order is not None else 0
 
 
 # -----------------------------
@@ -1927,9 +1929,12 @@ def add_resource():
     data = request.json
     try:
         original_path = data.get('resource_information')
-        filename = os.path.basename(original_path)
-        new_path = f'../../../src/assets/{filename}'
         resource_type = data.get('resource_type')
+        filename = os.path.basename(original_path)
+        if resource_type == "PICTURE":
+            new_path = f'../../../src/assets/{filename}'
+        else:
+            new_path = original_path
         resource_type = resource_type.lower() if resource_type == "PICTURE" else resource_type
         new_resource = Resource(
             resource_information=new_path,
@@ -1952,12 +1957,14 @@ def update_resource(resource_id):
         return jsonify({'error': 'Resource not found'}), 404
     try:
         original_path = data.get('resource_information', resource.resource_information)
-
         # 转换路径
         filename = os.path.basename(original_path)
-        new_path = f'../../../src/assets/{filename}'
-        resource.resource_information = new_path
         resource_type = data.get('resource_type', resource.resource_type)
+        if resource_type == "PICTURE":
+            new_path = f'../../../src/assets/{filename}'
+        else:
+            new_path = original_path
+        resource.resource_information = new_path
         resource_type = resource_type.lower() if resource_type == "PICTURE" else resource_type
         resource.resource_type = resource_type
         db.session.commit()
@@ -1973,6 +1980,16 @@ def delete_resource(resource_id):
     if not resource:
         return jsonify({'error': 'Resource not found'}), 404
     try:
+        # Delete the physical file if it's a picture
+        if resource.resource_type.lower() == "picture":
+            filename = os.path.basename(resource.resource_information)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as file_error:
+                # Log the file deletion error but continue with database deletion
+                app.logger.error(f"Failed to delete file {file_path}: {str(file_error)}")
         db.session.delete(resource)
         db.session.commit()
         return jsonify({'message': 'Resource deleted'})
@@ -2099,12 +2116,7 @@ def upload_file():
     # 保存到指定目录，这里你可以改为保存到 vue 项目中的 src/assets
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
-    # new_resource = Resource(
-    #
-    # )
-    # db.session.add(new_resource)
-    # db.session.commit()
-    # 返回相对路径，如 '/uploads/filename'
+
     return jsonify({'filePath': f'/vue-project/src/assets/{filename}'})
 
 
@@ -2305,7 +2317,7 @@ def get_reviews1(student_id):
             StudentCourses.student_id,
             Student.username
         ).join(Student, StudentCourses.student_id == Student.student_id
-        ).filter(
+               ).filter(
             StudentCourses.class_id == class_id,
             StudentCourses.student_id != student_id
         ).all()
@@ -2345,8 +2357,8 @@ def get_reviews1(student_id):
             PeerReview.review_result,
             PeerReview.sub_id
         ).join(latest_reviews,
-              PeerReview.peer_id == latest_reviews.c.latest_peer_id
-        ).all()
+               PeerReview.peer_id == latest_reviews.c.latest_peer_id
+               ).all()
 
         # 4. 构建完整响应
         result = []
